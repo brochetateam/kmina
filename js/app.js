@@ -1,3 +1,7 @@
+// =========================================================
+// KMINA · App principal (router + vistas + progreso)
+// =========================================================
+
 const PROGRESO_KEY = 'kmina_progreso';
 
 function getProgreso() {
@@ -5,27 +9,8 @@ function getProgreso() {
     return JSON.parse(localStorage.getItem(PROGRESO_KEY)) || { rutas: {}, paradas: {} };
   } catch { return { rutas: {}, paradas: {} }; }
 }
-
 function guardarProgreso(p) {
   localStorage.setItem(PROGRESO_KEY, JSON.stringify(p));
-}
-
-function toggleParada(rutaId, paradaId) {
-  const p = getProgreso();
-  const key = `${rutaId}-${paradaId}`;
-  if (p.paradas[key]) delete p.paradas[key];
-  else p.paradas[key] = true;
-  actualizarProgresoRuta(rutaId, p);
-  guardarProgreso(p);
-  render();
-}
-
-function actualizarProgresoRuta(rutaId, p) {
-  const ruta = RUTAS.find(r => r.id === rutaId);
-  if (!ruta) return;
-  const total = ruta.paradas.length;
-  const completadas = ruta.paradas.filter(par => p.paradas[`${rutaId}-${par.id}`]).length;
-  p.rutas[rutaId] = completadas === total;
 }
 
 function getProgresoRuta(rutaId) {
@@ -46,13 +31,68 @@ function getLogrosDesbloqueados() {
   });
 }
 
-// Router
+// =========================================================
+// Render helpers
+// =========================================================
+function getRouteImage(ruta) {
+  if (ruta.paradas && ruta.paradas.length) {
+    const p = ruta.paradas.find(x => x.img);
+    if (p) return p.img;
+  }
+  return null;
+}
+
+function renderArt(item, extraClass = '') {
+  // Devuelve el HTML de la "imagen representativa":
+  //   - <img> real si tiene img
+  //   - <div class="art ..."> (CSS cubista) como fallback
+  const artInner = (artClass) => {
+    const inner = [];
+    if (artClass === 'art-cubismo-rosa') inner.push('<span class="eye"></span>');
+    if (artClass === 'art-medieval') inner.push('<span class="tower"></span><span class="tower r"></span>');
+    if (artClass === 'art-historia') inner.push('<span class="arch"></span><span class="arch r"></span>');
+    if (artClass === 'art-gastro') inner.push('<span class="leaf"></span>');
+    if (artClass === 'art-abstract-1') inner.push('<span class="line"></span>');
+    return inner.join('');
+  };
+  if (item.img) {
+    return `<img src="${item.img}" alt="${item.nombre || ''}" loading="lazy" decoding="async" class="art-image ${extraClass}">`;
+  }
+  return `<div class="art ${item.art} ${extraClass}">${artInner(item.art)}</div>`;
+}
+
+// =========================================================
+// Three.js bridge
+// =========================================================
+function initHero3D() {
+  if (window.KMINA_THREE && window.KMINA_THREE.initHeroMap) {
+    window.KMINA_THREE.initHeroMap(RUTAS);
+  }
+}
+
+function toggleParada(rutaId, paradaId) {
+  const p = getProgreso();
+  const key = `${rutaId}-${paradaId}`;
+  if (p.paradas[key]) delete p.paradas[key];
+  else p.paradas[key] = true;
+
+  const ruta = RUTAS.find(r => r.id === rutaId);
+  if (ruta) {
+    const total = ruta.paradas.length;
+    const completadas = ruta.paradas.filter(par => p.paradas[`${rutaId}-${par.id}`]).length;
+    p.rutas[rutaId] = completadas === total;
+  }
+  guardarProgreso(p);
+  render();
+}
+
 function navigate(hash) {
   window.location.hash = hash;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function render() {
-  const hash = window.location.hash.slice(1) || 'home';
+  const hash = (window.location.hash || '#home').slice(1) || 'home';
   const app = document.getElementById('app');
   app.classList.remove('page-enter');
   void app.offsetWidth;
@@ -60,211 +100,384 @@ function render() {
   let html = '';
   if (hash === 'home') html = renderHome();
   else if (hash === 'rutas') html = renderRutas();
-  else if (hash.startsWith('ruta/')) {
-    const id = hash.split('/')[1];
-    html = renderRutaDetail(id);
-  } else if (hash === 'personalizada') html = renderPersonalizada();
+  else if (hash.startsWith('ruta/')) html = renderRutaDetail(hash.split('/')[1]);
+  else if (hash === 'personalizada') html = renderPersonalizada();
   else if (hash === 'logros') html = renderLogros();
   else html = renderHome();
 
   app.innerHTML = html;
   app.classList.add('page-enter');
 
-  document.querySelectorAll('.nav a').forEach(a => {
-    a.classList.toggle('active', a.getAttribute('href') === `#${hash}` || (hash.startsWith('ruta') && a.getAttribute('href') === '#rutas'));
+  // Init mapa 3D del hero cuando estamos en home
+  if (hash === 'home') {
+    setTimeout(initHero3D, 50);
+  }
+
+  // Active nav
+  document.querySelectorAll('[data-nav]').forEach(a => {
+    const target = a.getAttribute('data-nav');
+    a.classList.toggle('active', target === hash || (target === 'rutas' && hash.startsWith('ruta/')));
   });
 
-  if (hash === 'personalizada') initPersonalizada();
+  // Post-render hooks
+  if (hash.startsWith('ruta/')) {
+    setTimeout(() => {
+      const ruta = RUTAS.find(r => r.id === hash.split('/')[1]);
+      if (ruta) renderRouteMap('routeMap', ruta.paradas, { color: ruta.color || '#C84B31' });
+      observeReveal();
+    }, 50);
+  } else if (hash === 'personalizada') {
+    initPersonalizada();
+  } else {
+    observeReveal();
+  }
 }
 
-// Views
+// ============ REVEAL ON SCROLL ============
+let revealObserver = null;
+function observeReveal() {
+  if (!('IntersectionObserver' in window)) {
+    document.querySelectorAll('.reveal').forEach(el => el.classList.add('in'));
+    return;
+  }
+  if (revealObserver) revealObserver.disconnect();
+  revealObserver = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('in');
+        revealObserver.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+  document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+}
+
+// ============ VIEWS ============
+
 function renderHome() {
-  const p = getProgreso();
-  const rutasCompletas = Object.values(p.rutas).filter(Boolean).length;
+  const rutasCompletas = RUTAS.filter(r => getProgresoRuta(r.id).completo).length;
+  const totalParadas = RUTAS.reduce((s, r) => s + r.paradas.length, 0);
+  const totalLogros = LOGROS.length;
+
   return `
     <section class="hero">
       <div class="container">
-        <div class="event-badge">📅 Cultura Málaga 2026 · Desafío #6</div>
-        <h1>Rutas Temáticas<br>de Málaga</h1>
-        <p class="subtitle">Conecta cultura, gastronomía y arte en rutas únicas. Descubre la ciudad a través de sus historias, sabores y tradiciones.</p>
-        <div class="btn-group">
-          <a class="btn btn-primary" onclick="navigate('rutas')">🗺️ Explorar rutas</a>
-          <a class="btn btn-outline" onclick="navigate('personalizada')">✨ Crear ruta propia</a>
+        <div class="hero-grid">
+          <div class="hero-content">
+            <div class="hero-eyebrow">Cultura Málaga 2026 · Desafío #6</div>
+            <h1>
+              Rutas que<br>
+              <span class="italic">cuentan</span> <span class="underline-mark">historias</span>.
+            </h1>
+            <p class="hero-lead">
+              Conectamos cultura, gastronomía y arte en itinerarios curados por temática.
+              Una plataforma para descubrir Málaga siguiendo los pasos de quienes la
+              hicieron única.
+            </p>
+            <div class="hero-actions">
+              <a class="btn btn-primary" href="#rutas" onclick="navigate('rutas');return false;">
+                Explorar rutas <span class="arrow">→</span>
+              </a>
+              <a class="btn btn-outline" href="#personalizada" onclick="navigate('personalizada');return false;">
+                Crear ruta propia
+              </a>
+            </div>
+            <div class="hero-meta">
+              <div class="hero-meta-item">
+                <span class="num">${RUTAS.length}</span>
+                <span class="lbl">Rutas curadas</span>
+              </div>
+              <div class="hero-meta-item">
+                <span class="num">${totalParadas}</span>
+                <span class="lbl">Paradas</span>
+              </div>
+              <div class="hero-meta-item">
+                <span class="num">${totalLogros}</span>
+                <span class="lbl">Logros</span>
+              </div>
+            </div>
+          </div>
+          <div class="hero-canvas-wrap" id="heroCanvasWrap">
+            <canvas id="hero-canvas"></canvas>
+            <div class="hero-map-overlay">
+              <span class="hero-canvas-tag">made with ❤ in Málaga</span>
+              <span class="hero-canvas-tag b">5 rutas · 25 paradas</span>
+            </div>
+          </div>
         </div>
       </div>
     </section>
-    <main class="container">
-      <div class="page-header">
-        <h2>Rutas destacadas</h2>
-        <p>${rutasCompletas > 0 ? `Has completado ${rutasCompletas} de ${RUTAS.length} rutas.` : 'Elige una ruta temática y empieza tu aventura.'}</p>
+
+    <div class="marquee" aria-hidden="true">
+      <div class="marquee-track">
+        <span>Ruta Medieval</span><span>Ruta Picasso</span><span>Ruta Gastronómica</span>
+        <span>Ruta Histórica</span><span>Ruta Flamenca</span>
+        <span>Ruta Medieval</span><span>Ruta Picasso</span><span>Ruta Gastronómica</span>
+        <span>Ruta Histórica</span><span>Ruta Flamenca</span>
       </div>
-      <div class="route-grid">
-        ${RUTAS.map(r => {
-          const prog = getProgresoRuta(r.id);
-          const pct = prog.total > 0 ? (prog.completadas / prog.total * 100) : 0;
-          return `
-          <div class="route-card" onclick="navigate('ruta/${r.id}')">
-            <div class="route-card-img" style="background:${r.color}22">
-              <span>${r.imagen}</span>
-            </div>
-            <div class="route-card-body">
-              <h3>${r.nombre}</h3>
-              <p>${r.descripcion}</p>
-              <div class="route-card-meta">
-                <span>⏱️ ${r.duracion}</span>
-                <span>📍 ${r.distancia}</span>
-                <span>📍 ${r.paradas.length} paradas</span>
-              </div>
-              <div class="progress-bar">
-                <div class="fill" style="width:${pct}%"></div>
-              </div>
-            </div>
-          </div>`;
-        }).join('')}
+    </div>
+
+    <section class="section">
+      <div class="container">
+        <div class="section-header reveal">
+          <div>
+            <span class="section-eyebrow">Itinerarios curados</span>
+            <h2 class="section-title">Cinco rutas para<br><em>descubrir la ciudad</em>.</h2>
+          </div>
+          <p class="section-desc">
+            Cada ruta combina monumentos, museos, restaurantes y experiencias bajo una
+            mirada temática común. ${rutasCompletas > 0 ? `Ya completaste ${rutasCompletas} de ${RUTAS.length}.` : 'Empieza por la que más te inspire.'}
+          </p>
+        </div>
+        <div class="routes-grid">
+          ${RUTAS.map((r, idx) => {
+            const prog = getProgresoRuta(r.id);
+            return `
+              <article class="route-card reveal" onclick="navigate('ruta/${r.id}')" style="transition-delay:${idx * 60}ms">
+                <div class="route-card-art">
+                  ${(() => { const _img = getRouteImage(r); return _img
+                    ? `<img src="${_img}" alt="${r.nombre}" loading="lazy" decoding="async" class="art-image">`
+                    : `<div class="art ${r.art}">${r.art === 'art-cubismo-rosa' ? '<span class="eye"></span>' : ''}${r.art === 'art-medieval' ? '<span class="tower"></span><span class="tower r"></span>' : ''}${r.art === 'art-historia' ? '<span class="arch"></span><span class="arch r"></span>' : ''}${r.art === 'art-gastro' ? '<span class="leaf"></span>' : ''}${r.art === 'art-abstract-1' ? '<span class="line"></span>' : ''}</div>`; })()}
+                </div>
+                ${prog.completo ? '<div class="route-card-progress done">✓ Completada</div>' :
+                  prog.completadas > 0 ? `<div class="route-card-progress">${prog.completadas}/${prog.total}</div>` : ''}
+                <div class="route-card-body">
+                  <div class="route-card-num">
+                    <span>0${idx + 1} · ${r.distancia}</span>
+                    <span class="arrow-link">→</span>
+                  </div>
+                  <h3>${r.nombre}</h3>
+                  <p>${r.descripcion}</p>
+                  <div class="route-card-meta">
+                    <span>⏱ ${r.duracion}</span>
+                    <span>◎ ${r.paradas.length} paradas</span>
+                  </div>
+                </div>
+              </article>`;
+          }).join('')}
+        </div>
       </div>
-    </main>`;
+    </section>
+
+    <section class="section" style="background:var(--ink); color:var(--paper); margin-top: 40px;">
+      <div class="container">
+        <div class="section-header reveal" style="color:var(--paper);">
+          <div>
+            <span class="section-eyebrow" style="color:var(--ochre);">El modelo</span>
+            <h2 class="section-title" style="color:var(--paper);">Crowdfunding cultural<br><em style="color:var(--ochre);">que interconecta</em>.</h2>
+          </div>
+          <p class="section-desc" style="color:rgba(242,235,220,0.7);">
+            Empresas de diferentes sectores se unen bajo una temática común para crear
+            eventos que ninguno podría organizar en solitario. La plataforma curates
+            las rutas y visibiliza a los partners.
+          </p>
+        </div>
+        <div class="routes-grid reveal">
+          ${[
+            { n: '01', t: 'Curación temática', d: 'Seleccionamos los lugares y experiencias que mejor cuentan la historia.' },
+            { n: '02', t: 'Rutas autogeneradas', d: 'Filtros por intereses, accesibilidad y tiempo disponible.' },
+            { n: '03', t: 'Logros & narrativa', d: 'Cada ruta completada revela un capítulo nuevo de la ciudad.' },
+            { n: '04', t: 'Partners integrados', d: 'Museos, bares, teatros y tiendas se conectan en una sola experiencia.' }
+          ].map(item => `
+            <div style="border:1px solid rgba(242,235,220,0.15); border-radius: var(--radius); padding: 32px; background: rgba(242,235,220,0.03);">
+              <div style="font-family:var(--font-display); color:var(--ochre); font-size: 1.4rem; margin-bottom: 12px;">${item.n}</div>
+              <h3 style="font-family:var(--font-display); font-weight: 500; font-size: 1.3rem; margin-bottom: 8px; color:var(--paper);">${item.t}</h3>
+              <p style="font-family:var(--font-serif); color:rgba(242,235,220,0.7); font-size: 1rem; line-height: 1.5;">${item.d}</p>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </section>
+  `;
 }
 
 function renderRutas() {
   return `
-    <main class="container page-enter">
-      <div class="page-header">
-        <h2>🗺️ Todas las rutas</h2>
-        <p>Selecciona una ruta temática para ver sus paradas y empezar tu recorrido.</p>
+    <section class="section" style="padding-top: 140px;">
+      <div class="container">
+        <div class="section-header reveal">
+          <div>
+            <span class="section-eyebrow">Catálogo</span>
+            <h2 class="section-title">Todas las rutas<br><em>disponibles</em>.</h2>
+          </div>
+          <p class="section-desc">
+            Selecciona una ruta temática para descubrir sus paradas, marcarlas como
+            visitadas y acumular logros.
+          </p>
+        </div>
+        <div class="routes-grid">
+          ${RUTAS.map((r, idx) => {
+            const prog = getProgresoRuta(r.id);
+            return `
+              <article class="route-card reveal" onclick="navigate('ruta/${r.id}')" style="transition-delay:${idx * 60}ms">
+                <div class="route-card-art">
+                  ${(() => { const _img = getRouteImage(r); return _img
+                    ? `<img src="${_img}" alt="${r.nombre}" loading="lazy" decoding="async" class="art-image">`
+                    : `<div class="art ${r.art}">${r.art === 'art-cubismo-rosa' ? '<span class="eye"></span>' : ''}${r.art === 'art-medieval' ? '<span class="tower"></span><span class="tower r"></span>' : ''}${r.art === 'art-historia' ? '<span class="arch"></span><span class="arch r"></span>' : ''}${r.art === 'art-gastro' ? '<span class="leaf"></span>' : ''}${r.art === 'art-abstract-1' ? '<span class="line"></span>' : ''}</div>`; })()}
+                </div>
+                ${prog.completo ? '<div class="route-card-progress done">✓ Completada</div>' :
+                  prog.completadas > 0 ? `<div class="route-card-progress">${prog.completadas}/${prog.total}</div>` : ''}
+                <div class="route-card-body">
+                  <div class="route-card-num">
+                    <span>0${idx + 1} · ${r.distancia}</span>
+                    <span class="arrow-link">→</span>
+                  </div>
+                  <h3>${r.nombre}</h3>
+                  <p>${r.descripcion}</p>
+                  <div class="route-card-meta">
+                    <span>⏱ ${r.duracion}</span>
+                    <span>◎ ${r.paradas.length} paradas</span>
+                  </div>
+                </div>
+              </article>`;
+          }).join('')}
+        </div>
       </div>
-      <div class="route-grid">
-        ${RUTAS.map(r => {
-          const prog = getProgresoRuta(r.id);
-          const pct = prog.total > 0 ? (prog.completadas / prog.total * 100) : 0;
-          return `
-          <div class="route-card" onclick="navigate('ruta/${r.id}')">
-            <div class="route-card-img" style="background:${r.color}22">
-              <span>${r.imagen}</span>
-            </div>
-            <div class="route-card-body">
-              <h3>${r.nombre}</h3>
-              <p>${r.descripcion}</p>
-              <div class="route-card-meta">
-                <span>⏱️ ${r.duracion}</span>
-                <span>📍 ${r.distancia}</span>
-                <span>📍 ${r.paradas.length} paradas</span>
-              </div>
-              <div class="progress-bar">
-                <div class="fill" style="width:${pct}%"></div>
-              </div>
-              ${prog.completo ? '<div style="margin-top:8px;font-size:0.82rem;color:#3A7D5C;font-weight:600;">✅ Completada</div>' : ''}
-            </div>
-          </div>`;
-        }).join('')}
-      </div>
-    </main>`;
+    </section>
+  `;
 }
 
 function renderRutaDetail(id) {
   const ruta = RUTAS.find(r => r.id === id);
-  if (!ruta) return '<div class="container"><h2>Ruta no encontrada</h2></div>';
+  if (!ruta) return `<section class="section"><div class="container"><h1>Ruta no encontrada</h1></div></section>`;
+
   const p = getProgreso();
   const prog = getProgresoRuta(id);
+  const gmapsUrl = ruta.id === 'picasso' ? GOOGLE_MAPS_PICASSO_URL : buildGoogleMapsUrl(ruta.paradas);
+
   return `
-    <main class="container route-detail page-enter">
-      <div class="route-detail-header">
-        <div class="route-icon">${ruta.imagen}</div>
-        <h2>${ruta.nombre}</h2>
-        <p class="desc">${ruta.descripcion}</p>
-        <div class="route-detail-stats">
-          <span>⏱️ ${ruta.duracion}</span>
-          <span>📍 ${ruta.distancia}</span>
-          <span>📍 ${ruta.paradas.length} paradas</span>
-          <span>${prog.completadas}/${prog.total} visitadas</span>
-          ${prog.completo ? '<span class="completed-badge">✅ Completada</span>' : ''}
+    <section class="route-detail">
+      <div class="container">
+        <div class="route-header reveal">
+          <div>
+            <span class="route-num">RUTA 0${RUTAS.indexOf(ruta) + 1} · ${ruta.distancia}</span>
+            <h1>${ruta.nombre.replace('Ruta ', '')}<em>.</em></h1>
+            <div class="route-header-stats">
+              <span>⏱ <strong>${ruta.duracion}</strong></span>
+              <span>◎ <strong>${ruta.paradas.length}</strong> paradas</span>
+              <span>◎ <strong>${prog.completadas}/${prog.total}</strong> visitadas</span>
+              ${prog.completo ? '<span style="color:var(--olive); font-weight:600;">✓ Completada</span>' : ''}
+            </div>
+          </div>
+          <p>${ruta.descripcion}</p>
+        </div>
+
+        <div class="map-container reveal">
+          <div class="map-overlay">◎ ${ruta.nombre}</div>
+          <div class="map-actions">
+            <a class="btn" href="${gmapsUrl}" target="_blank" rel="noopener">↗ Google Maps</a>
+            <a class="btn" href="#personalizada" onclick="navigate('personalizada');return false;">+ Crear variante</a>
+          </div>
+          <div id="routeMap"></div>
+        </div>
+
+        <div class="reveal" style="text-align:center; margin-bottom: 32px;">
+          <span class="section-eyebrow">El recorrido</span>
+          <h3 class="section-title" style="font-size: 2rem; max-width: 100%;">${ruta.paradas.length} paradas, una <em>historia</em>.</h3>
+        </div>
+
+        <div class="stops-list">
+          ${ruta.paradas.map((par, i) => {
+            const checked = !!p.paradas[`${id}-${par.id}`];
+            return `
+              <div class="stop-card reveal ${checked ? 'completed' : ''}" style="transition-delay:${i * 50}ms">
+                <div class="stop-number">Parada ${i + 1}</div>
+                <div class="stop-art">
+                  ${par.img
+                    ? `<img src="${par.img}" alt="${par.nombre}" loading="lazy" decoding="async" class="art-image art-sm">`
+                    : `<div class="art ${par.art} art-sm">${par.art === 'art-cubismo-rosa' ? '<span class="eye"></span>' : ''}${par.art === 'art-medieval' ? '<span class="tower"></span><span class="tower r"></span>' : ''}${par.art === 'art-historia' ? '<span class="arch"></span><span class="arch r"></span>' : ''}${par.art === 'art-gastro' ? '<span class="leaf"></span>' : ''}${par.art === 'art-abstract-1' ? '<span class="line"></span>' : ''}</div>`
+                  }
+                </div>
+                <div class="stop-info">
+                  <span class="type">${par.tipo}</span>
+                  <h3>${par.nombre}</h3>
+                  <p>${par.descripcion}</p>
+                  <div class="stop-meta">
+                    <span>🕐 ${par.horario}</span>
+                    <span>◎ ${par.precio}</span>
+                  </div>
+                  <div class="stop-tags">
+                    ${par.tags.slice(0, 4).map(t => `<span class="tag-pill">${t}</span>`).join('')}
+                  </div>
+                </div>
+                <div class="stop-check ${checked ? 'checked' : ''}" onclick="event.stopPropagation();toggleParada('${id}', ${par.id});" title="${checked ? 'Marcar como no visitada' : 'Marcar como visitada'}">
+                  ${checked ? '✓' : '○'}
+                </div>
+              </div>`;
+          }).join('')}
+        </div>
+
+        <div style="text-align:center; margin-top: 60px;" class="reveal">
+          <a class="btn btn-outline" href="#rutas" onclick="navigate('rutas');return false;">← Volver al catálogo</a>
+          ${prog.completo ? '<p style="margin-top:24px; font-family:var(--font-display); font-style:italic; color:var(--olive); font-size:1.2rem;">Has completado esta ruta. ¡Forma parte de la historia!</p>' : ''}
         </div>
       </div>
-      <div class="map-placeholder">
-        <div class="icon">🗺️</div>
-        <p>Mapa interactivo de la ruta — aquí se mostraría el recorrido en un mapa real</p>
-      </div>
-      <h3 class="section-title">📍 Paradas de la ruta</h3>
-      <div class="stops-list">
-        ${ruta.paradas.map((par, i) => {
-          const checked = !!p.paradas[`${id}-${par.id}`];
-          const tags = [...new Set(par.tags)].slice(0, 4);
-          return `
-          <div class="stop-card ${checked ? 'completed' : ''}">
-            <div class="stop-number">${i + 1}</div>
-            <div class="stop-info">
-              <h4>${par.nombre}</h4>
-              <span class="type-tag">${par.tipo}</span>
-              <p class="desc">${par.descripcion}</p>
-              <div class="stop-meta">
-                <span>🕐 ${par.horario}</span>
-                <span>💰 ${par.precio}</span>
-              </div>
-              <div class="stop-tags">
-                ${tags.map(t => `<span class="tag">${t}</span>`).join('')}
-              </div>
-            </div>
-            <div class="stop-check ${checked ? 'checked' : ''}" onclick="event.stopPropagation();toggleParada('${id}', ${par.id});" title="${checked ? 'Marcar como no visitada' : 'Marcar como visitada'}">
-              ${checked ? '✓' : ''}
-            </div>
-          </div>`;
-        }).join('')}
-      </div>
-      <div style="text-align:center;margin-top:24px">
-        <button class="btn btn-primary" onclick="navigate('rutas')">← Volver a rutas</button>
-      </div>
-    </main>`;
+    </section>
+  `;
 }
 
 function renderPersonalizada() {
   return `
-    <main class="container custom-route page-enter">
-      <div class="page-header">
-        <h2>✨ Ruta personalizada</h2>
-        <p>Elige tus preferencias y filtra las actividades que más te interesen para crear tu ruta ideal.</p>
-      </div>
-      <div class="custom-layout">
-        <div class="filter-panel" id="filterPanel">
-          <h3>Filtros</h3>
-          <div class="filter-group">
-            <label>🎯 Temáticas</label>
-            <div class="tag-options" id="tagFilters">
-              ${TAGS_DISPONIBLES.map(t => `
-                <label class="tag-option" data-tag="${t}">
+    <section class="section" style="padding-top: 140px;">
+      <div class="container">
+        <div class="section-header reveal">
+          <div>
+            <span class="section-eyebrow">A tu medida</span>
+            <h2 class="section-title">Crea tu ruta<br><em>personalizada</em>.</h2>
+          </div>
+          <p class="section-desc">
+            Elige temáticas, tipos de lugar y obtén un itinerario curado al instante.
+            Puedes incluir paradas ajenas a la temática o filtrarlas.
+          </p>
+        </div>
+
+        <div class="custom-layout reveal">
+          <aside class="filter-panel">
+            <h3>Filtros</h3>
+            <div class="filter-group">
+              <label>Temáticas</label>
+              <div class="tag-options" id="tagFilters">
+                ${TAGS_DISPONIBLES.map(t => `
+                  <label class="tag-chip on" data-tag="${t}">
+                    <input type="checkbox" value="${t}" checked>
+                    ${t}
+                  </label>
+                `).join('')}
+              </div>
+            </div>
+            <div class="filter-group">
+              <label>Tipo de lugar</label>
+              ${TIPOS_DISPONIBLES.map(t => `
+                <label class="checkbox-row">
                   <input type="checkbox" value="${t}" checked>
                   ${t}
                 </label>
               `).join('')}
             </div>
-          </div>
-          <div class="filter-group">
-            <label>🔘 Tipo de lugar</label>
-            ${['monumento', 'museo', 'restaurante', 'teatro', 'cultural', 'plaza', 'mercado', 'espectáculo'].map(t => `
+            <div class="filter-group">
+              <label>Modo</label>
               <label class="checkbox-row">
-                <input type="checkbox" value="${t}" checked>
-                ${t}
+                <input type="checkbox" id="exclusivo" checked>
+                Solo lugares de la temática
               </label>
-            `).join('')}
-          </div>
-          <button class="btn btn-primary btn-block" onclick="aplicarFiltros()">🔍 Generar ruta</button>
-          <button class="btn btn-outline btn-block" style="margin-top:8px;color:var(--text);border-color:var(--border);" onclick="resetFiltros()">↺ Restablecer</button>
-        </div>
-        <div class="custom-results" id="customResults">
-          <div class="empty-state">
-            <div class="icon">🎯</div>
-            <h3>Selecciona tus filtros</h3>
-            <p>Elige las temáticas que te interesan y genera tu ruta personalizada.</p>
-          </div>
+            </div>
+            <button class="btn btn-primary btn-block" onclick="aplicarFiltros()">Generar ruta</button>
+            <button class="btn btn-outline btn-block" onclick="resetFiltros()">Restablecer</button>
+          </aside>
+          <div class="custom-results" id="customResults"></div>
         </div>
       </div>
-    </main>`;
+    </section>
+  `;
 }
 
 function initPersonalizada() {
-  document.querySelectorAll('.tag-option').forEach(el => {
-    el.addEventListener('click', function(e) {
-      const input = this.querySelector('input');
+  document.querySelectorAll('#tagFilters .tag-chip').forEach(chip => {
+    chip.addEventListener('click', e => {
+      e.preventDefault();
+      const input = chip.querySelector('input');
       input.checked = !input.checked;
-      this.classList.toggle('selected', input.checked);
+      chip.classList.toggle('on', input.checked);
       aplicarFiltros();
     });
   });
@@ -275,28 +488,32 @@ function initPersonalizada() {
 }
 
 function resetFiltros() {
-  document.querySelectorAll('.tag-option input, .checkbox-row input').forEach(cb => cb.checked = true);
-  document.querySelectorAll('.tag-option').forEach(el => el.classList.add('selected'));
+  document.querySelectorAll('#tagFilters .tag-chip').forEach(chip => {
+    const input = chip.querySelector('input');
+    input.checked = true;
+    chip.classList.add('on');
+  });
+  document.querySelectorAll('.filter-panel .checkbox-row input').forEach(cb => cb.checked = true);
   aplicarFiltros();
 }
 
 function aplicarFiltros() {
-  const tagsSel = [...document.querySelectorAll('.tag-option input:checked')].map(cb => cb.value);
-  const tiposSel = [...document.querySelectorAll('.checkbox-row input:checked')].map(cb => cb.value);
-
-  // Highlight selected tags
-  document.querySelectorAll('.tag-option').forEach(el => {
-    const input = el.querySelector('input');
-    el.classList.toggle('selected', input.checked);
-  });
+  const tagsSel = [...document.querySelectorAll('#tagFilters input:checked')].map(cb => cb.value);
+  const tiposSel = [...document.querySelectorAll('.filter-panel .checkbox-row input:not(#exclusivo):checked')].map(cb => cb.value);
+  const exclusivo = document.getElementById('exclusivo')?.checked;
 
   const resultados = [];
   RUTAS.forEach(ruta => {
     ruta.paradas.forEach(par => {
       const matchTags = tagsSel.some(t => par.tags.includes(t));
       const matchTipo = tiposSel.includes(par.tipo);
-      if (matchTags && matchTipo) {
-        resultados.push({ ...par, rutaNombre: ruta.nombre, rutaId: ruta.id, rutaImagen: ruta.imagen });
+      if (exclusivo) {
+        // Require ALL selected tags to be present? Let's require any for usability
+        if (matchTags && matchTipo) resultados.push({ ...par, rutaNombre: ruta.nombre, rutaId: ruta.id, rutaArt: ruta.art });
+      } else {
+        if ((matchTags || tagsSel.length === 0) && (matchTipo || tiposSel.length === 0)) {
+          resultados.push({ ...par, rutaNombre: ruta.nombre, rutaId: ruta.id, rutaArt: ruta.art });
+        }
       }
     });
   });
@@ -305,118 +522,105 @@ function aplicarFiltros() {
   if (!container) return;
 
   if (resultados.length === 0) {
-    container.innerHTML = `<div class="empty-state"><div class="icon">🔍</div><h3>Sin resultados</h3><p>Prueba a seleccionar más temáticas o tipos de lugar.</p></div>`;
+    container.innerHTML = `<div class="empty-state"><div class="icon">∅</div><h3>Sin resultados</h3><p>Prueba a seleccionar más temáticas o tipos de lugar.</p></div>`;
     return;
   }
 
   container.innerHTML = `
-    <div style="margin-bottom:16px;font-size:0.9rem;color:var(--text-light);">
-      🎯 ${resultados.length} lugares encontrados
-      <button class="btn" style="margin-left:8px;padding:6px 16px;font-size:0.82rem;background:var(--cream);" onclick="generarRutaOptima()">📋 Generar ruta óptima</button>
+    <div class="results-header">
+      <h3><span id="resCount">${resultados.length}</span> paradas seleccionadas</h3>
+      <span class="results-count">Ordenadas por relevancia</span>
     </div>
-    <div id="rutaOptima">
-      ${resultados.map(r => `
-        <div class="custom-result-card" onclick="navigate('ruta/${r.rutaId}')" style="cursor:pointer">
-          <h4>${r.nombre}</h4>
-          <div class="custom-result-type">${r.tipo} · ${r.rutaImagen} ${r.rutaNombre}</div>
-          <p>${r.descripcion}</p>
-          <div class="stop-tags">
-            ${r.tags.slice(0, 3).map(t => `<span class="tag">${t}</span>`).join('')}
+    <div id="resultList">
+      ${resultados.map((r, i) => `
+        <div class="custom-result-card" onclick="navigate('ruta/${r.rutaId}')" style="animation: pageIn 0.5s var(--ease) ${i * 30}ms both;">
+          <div class="stop-art">
+            ${r.img
+              ? `<img src="${r.img}" alt="${r.nombre}" loading="lazy" decoding="async" class="art-image art-sm">`
+              : `<div class="art ${r.art} art-sm">${r.art === 'art-cubismo-rosa' ? '<span class="eye"></span>' : ''}${r.art === 'art-medieval' ? '<span class="tower"></span><span class="tower r"></span>' : ''}${r.art === 'art-historia' ? '<span class="arch"></span><span class="arch r"></span>' : ''}${r.art === 'art-gastro' ? '<span class="leaf"></span>' : ''}${r.art === 'art-abstract-1' ? '<span class="line"></span>' : ''}</div>`
+            }
+          </div>
+          <div>
+            <h4>${r.nombre}</h4>
+            <span class="type">${r.tipo} · ${r.rutaNombre}</span>
+            <p>${r.descripcion.slice(0, 130)}${r.descripcion.length > 130 ? '…' : ''}</p>
           </div>
         </div>
       `).join('')}
     </div>`;
 }
 
-function generarRutaOptima() {
-  const cards = document.querySelectorAll('.custom-result-card');
-  if (cards.length === 0) return;
-  const msg = document.createElement('div');
-  msg.style.cssText = 'background:var(--success);color:white;padding:12px 20px;border-radius:var(--radius-sm);margin-bottom:16px;font-size:0.9rem;font-weight:500;';
-  msg.innerHTML = '✅ Ruta óptima generada! Hemos ordenado los lugares por cercanía geográfica y temática para minimizar desplazamientos.';
-  const parent = document.getElementById('rutaOptima');
-  parent.parentNode.insertBefore(msg, parent);
-
-  const arr = [...cards];
-  arr.sort((a, b) => {
-    const aRuta = a.querySelector('.custom-result-type')?.textContent || '';
-    const bRuta = b.querySelector('.custom-result-type')?.textContent || '';
-    return aRuta.localeCompare(bRuta);
-  });
-  arr.forEach(card => parent.appendChild(card));
-}
-
 function renderLogros() {
-  const p = getProgreso();
-  const rutasCompletas = Object.values(p.rutas).filter(Boolean).length;
+  const rutasCompletas = RUTAS.filter(r => getProgresoRuta(r.id).completo).length;
   const totalParadas = RUTAS.reduce((s, r) => s + r.paradas.length, 0);
+  const p = getProgreso();
   const paradasVisitadas = Object.keys(p.paradas).length;
   const desbloqueados = getLogrosDesbloqueados();
   const pctGlobal = totalParadas > 0 ? Math.round((paradasVisitadas / totalParadas) * 100) : 0;
 
   return `
-    <main class="container achievements page-enter">
-      <div class="page-header">
-        <h2>🏆 Logros y progreso</h2>
-        <p>Completa rutas y visita lugares para desbloquear logros. ¡Conviértete en el mejor explorador de Málaga!</p>
-      </div>
-      <div class="achievement-stats">
-        <div class="stat-card">
-          <div class="number">${rutasCompletas}/${RUTAS.length}</div>
-          <div class="label">Rutas completas</div>
+    <section class="section" style="padding-top: 140px;">
+      <div class="container">
+        <div class="section-header reveal">
+          <div>
+            <span class="section-eyebrow">Tu recorrido</span>
+            <h2 class="section-title">Logros<br><em>y progreso</em>.</h2>
+          </div>
+          <p class="section-desc">
+            Cada ruta completada y cada parada visitada desbloquea nuevos capítulos
+            de tu historia en Málaga.
+          </p>
         </div>
-        <div class="stat-card">
-          <div class="number">${paradasVisitadas}</div>
-          <div class="label">Lugares visitados</div>
-        </div>
-        <div class="stat-card">
-          <div class="number">${pctGlobal}%</div>
-          <div class="label">Progreso global</div>
-        </div>
-        <div class="stat-card">
-          <div class="number">${desbloqueados.length}/${LOGROS.length}</div>
-          <div class="label">Logros</div>
-        </div>
-      </div>
 
-      <div style="background:var(--white);border-radius:var(--radius);padding:24px;border:1px solid var(--border);box-shadow:var(--shadow);margin-bottom:32px;">
-        <h3 style="font-weight:600;margin-bottom:12px;">📊 Progreso global</h3>
-        <div style="height:12px;background:var(--cream);border-radius:8px;overflow:hidden;">
-          <div style="height:100%;width:${pctGlobal}%;background:linear-gradient(90deg,var(--primary),var(--secondary));border-radius:8px;transition:width 0.5s ease;"></div>
+        <div class="achievement-stats">
+          <div class="stat-card reveal"><span class="number">${rutasCompletas}/${RUTAS.length}</span><span class="label">Rutas</span></div>
+          <div class="stat-card reveal" style="transition-delay:60ms"><span class="number">${paradasVisitadas}</span><span class="label">Paradas</span></div>
+          <div class="stat-card reveal" style="transition-delay:120ms"><span class="number">${pctGlobal}%</span><span class="label">Progreso</span></div>
+          <div class="stat-card reveal" style="transition-delay:180ms"><span class="number">${desbloqueados.length}/${LOGROS.length}</span><span class="label">Logros</span></div>
         </div>
-        <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:0.82rem;color:var(--text-light);">
-          <span>${paradasVisitadas} de ${totalParadas} lugares</span>
-          <span>${pctGlobal}% completado</span>
+
+        <div class="progress-block reveal">
+          <h3>Progreso global</h3>
+          <div class="progress-bar-big">
+            <div class="fill" style="width:${pctGlobal}%"></div>
+          </div>
+          <div class="progress-meta">
+            <span><strong>${paradasVisitadas}</strong> de ${totalParadas} lugares visitados</span>
+            <span><strong>${pctGlobal}%</strong> completado</span>
+          </div>
+        </div>
+
+        <h3 class="section-title reveal" style="font-size:1.8rem; margin-bottom:24px;">Insignias</h3>
+        <div class="achievement-grid">
+          ${LOGROS.map((l, i) => {
+            const unlocked = desbloqueados.find(d => d.id === l.id);
+            const progRuta = l.ruta ? getProgresoRuta(l.ruta) : null;
+            return `
+              <div class="achievement-card reveal ${unlocked ? 'unlocked' : 'locked'}" style="transition-delay:${i * 40}ms">
+                <span class="achievement-icon">${l.icono}</span>
+                <h4>${l.nombre}</h4>
+                <p>${l.descripcion}</p>
+                ${progRuta ? `<div class="meta">${progRuta.completadas}/${progRuta.total} paradas</div>` : ''}
+                ${!unlocked && !l.ruta ? `<div class="meta">${l.umbral} rutas requeridas</div>` : ''}
+              </div>`;
+          }).join('')}
+        </div>
+
+        <div class="simulator reveal">
+          <h3>Simular progreso · demo</h3>
+          <p>Para ver el sistema en acción durante la presentación, marca una ruta como completada al instante.</p>
+          <div class="simulator-row">
+            <select id="simularRuta" onchange="simularCompletar(this.value)">
+              <option value="">— Selecciona una ruta —</option>
+              ${RUTAS.map(r => `<option value="${r.id}">${r.imagen} ${r.nombre}</option>`).join('')}
+            </select>
+            <button class="btn btn-outline" onclick="completarTodas()">Completar todas</button>
+            <button class="btn btn-outline" onclick="limpiarProgreso()">Reiniciar</button>
+          </div>
         </div>
       </div>
-
-      <h3 class="section-title">🎖️ Logros</h3>
-      <div class="achievement-grid">
-        ${LOGROS.map(l => {
-          const unlocked = desbloqueados.find(d => d.id === l.id);
-          const progRuta = l.ruta ? getProgresoRuta(l.ruta) : null;
-          return `
-          <div class="achievement-card ${unlocked ? 'unlocked' : 'locked'}">
-            <div class="icon">${l.icono}</div>
-            <h4>${l.nombre}</h4>
-            <p>${l.descripcion}</p>
-            ${progRuta ? `<div style="margin-top:8px;font-size:0.75rem;color:var(--text-light);">${progRuta.completadas}/${progRuta.total} paradas</div>` : ''}
-            ${!unlocked && !l.ruta ? `<div style="margin-top:6px;font-size:0.72rem;color:var(--text-light);background:var(--cream);display:inline-block;padding:2px 8px;border-radius:100px;">${l.umbral} rutas requeridas</div>` : ''}
-          </div>`;
-        }).join('')}
-      </div>
-
-      <h3 class="section-title" style="margin-top:40px">🔄 Simular progreso</h3>
-      <p style="color:var(--text-light);margin-bottom:16px;">Selecciona una ruta para marcarla como completada (demo):</p>
-      <select class="route-select" id="simularRuta" onchange="simularCompletar(this.value)">
-        <option value="">— Selecciona una ruta —</option>
-        ${RUTAS.map(r => `<option value="${r.id}">${r.imagen} ${r.nombre}</option>`).join('')}
-      </select>
-      <div style="margin-top:24px;display:flex;gap:8px;flex-wrap:wrap;">
-        <button class="btn btn-outline" style="color:var(--text);border-color:var(--border);" onclick="limpiarProgreso()">🗑️ Reiniciar progreso</button>
-        <button class="btn btn-outline" style="color:var(--text);border-color:var(--border);" onclick="completarTodas()">🏁 Completar todas (demo)</button>
-      </div>
-    </main>`;
+    </section>
+  `;
 }
 
 function simularCompletar(rutaId) {
@@ -447,10 +651,28 @@ function completarTodas() {
   render();
 }
 
-// Init
+// ============ INIT ============
+
+// Header scroll style + FAB
+function setupHeader() {
+  const header = document.getElementById('siteHeader');
+  const fab = document.getElementById('fab');
+  function onScroll() {
+    const sc = window.scrollY > 30;
+    header?.classList.toggle('scrolled', sc);
+    fab?.classList.toggle('show', window.scrollY > 600);
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+}
+
 window.addEventListener('hashchange', render);
-render();
-document.body.addEventListener('click', e => {
-  const link = e.target.closest('[onclick^="navigate"]');
-  if (link) e.preventDefault();
-});
+function boot() {
+  setupHeader();
+  render();
+}
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', boot);
+} else {
+  boot();
+}

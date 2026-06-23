@@ -67,9 +67,30 @@ function renderArt(item, extraClass = '') {
 let _heroLeafletMap = null;
 
 function renderHeroMap() {
-  if (!window.L) return; // Leaflet no cargó
   const el = document.getElementById('heroMap');
   if (!el) return;
+
+  // Si el contenedor aún no tiene tamaño (fonts async, aspect-ratio),
+  // reintentamos en el siguiente frame hasta que tenga dimensiones reales.
+  if (el.clientWidth === 0 || el.clientHeight === 0) {
+    // Límite de reintentos para no buclear infinito
+    renderHeroMap._retries = (renderHeroMap._retries || 0) + 1;
+    if (renderHeroMap._retries > 60) {
+      console.warn('[Kmina] heroMap nunca tuvo tamaño, mostrando fallback SVG');
+      renderHeroMapFallback(el);
+      return;
+    }
+    requestAnimationFrame(renderHeroMap);
+    return;
+  }
+  renderHeroMap._retries = 0;
+
+  // Si Leaflet no cargó, fallback SVG
+  if (!window.L) {
+    console.warn('[Kmina] Leaflet no cargó, mostrando fallback SVG');
+    renderHeroMapFallback(el);
+    return;
+  }
 
   // Limpia si ya había un mapa (re-render del home)
   if (_heroLeafletMap) {
@@ -78,18 +99,29 @@ function renderHeroMap() {
   }
 
   const picasso = RUTAS.find(r => r.id === 'picasso');
-  if (!picasso) return;
+  if (!picasso) {
+    renderHeroMapFallback(el);
+    return;
+  }
 
   const stops = picasso.paradas.filter(s => s.lat != null && s.lng != null);
-  if (stops.length === 0) return;
+  if (stops.length === 0) {
+    renderHeroMapFallback(el);
+    return;
+  }
 
   const map = L.map(el, {
     zoomControl: false,
     scrollWheelZoom: false,
     attributionControl: true,
     dragging: false,
-    doubleClickZoom: false
+    doubleClickZoom: false,
+    fadeAnimation: true,
+    zoomAnimation: true
   });
+
+  // Forzar recálculo de tamaño (clave con aspect-ratio + fonts async)
+  map.invalidateSize();
 
   L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
     attribution: '© <a href="https://www.openstreetmap.org/copyright">OSM</a> · © <a href="https://carto.com/attributions">CARTO</a>',
@@ -121,9 +153,14 @@ function renderHeroMap() {
   const bounds = L.latLngBounds(latlngs);
   map.fitBounds(bounds, { padding: [60, 60] });
 
+  // Re-invalidate tras fitBounds y tras un tick (asegura render correcto de tiles)
+  setTimeout(() => map.invalidateSize(), 50);
+  setTimeout(() => map.invalidateSize(), 250);
+
   // Animación: dibuja la polyline progresivamente
   let progress = 0;
   const animate = () => {
+    if (!_heroLeafletMap) return; // fue disposed, parar
     progress = Math.min(1, progress + 0.02);
     if (progress < 1) {
       const drawn = [];
@@ -167,6 +204,55 @@ function renderHeroMap() {
   }
 }
 
+// Fallback SVG: si Leaflet falla o el contenedor no tiene tamaño,
+// muestra una composición minimalista con las paradas de la ruta Picasso.
+function renderHeroMapFallback(el) {
+  const picasso = RUTAS.find(r => r.id === 'picasso');
+  if (!picasso) {
+    el.innerHTML = '<div class="hero-map-fallback-text">Ruta Picasso</div>';
+    return;
+  }
+  const stops = picasso.paradas.filter(s => s.lat != null);
+  if (stops.length === 0) {
+    el.innerHTML = '<div class="hero-map-fallback-text">Ruta Picasso</div>';
+    return;
+  }
+  const color = picasso.color || '#2C6E8A';
+  const W = 100, H = 100;
+  const lats = stops.map(s => s.lat);
+  const lngs = stops.map(s => s.lng);
+  const minLat = Math.min(...lats), maxLat = Math.max(...lats);
+  const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
+  const rangeLat = Math.max(0.001, maxLat - minLat);
+  const rangeLng = Math.max(0.001, maxLng - minLng);
+
+  const points = stops.map((s, i) => {
+    const u = (s.lng - minLng) / rangeLng;
+    const v = 1 - (s.lat - minLat) / rangeLat;
+    return { x: 10 + u * 80, y: 10 + v * 80, label: i + 1 };
+  });
+  const polylinePts = points.map(p => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(' ');
+
+  el.innerHTML =
+    '<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMidYMid meet" class="hero-map-svg">' +
+    '<defs>' +
+    '<pattern id="g" width="10" height="10" patternUnits="userSpaceOnUse">' +
+    '<path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(14,14,15,0.05)" stroke-width="0.3"/>' +
+    '</pattern>' +
+    '</defs>' +
+    '<rect width="' + W + '" height="' + H + '" fill="url(#g)"/>' +
+    '<polyline points="' + polylinePts + '" fill="none" stroke="' + color + '" stroke-width="0.9" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="2,1.5" opacity="0.9"/>' +
+    points.map(p =>
+      '<g>' +
+      '<circle cx="' + p.x.toFixed(2) + '" cy="' + p.y.toFixed(2) + '" r="4" fill="' + color + '" stroke="#FAF6EC" stroke-width="1.2"/>' +
+      '<text x="' + p.x.toFixed(2) + '" y="' + (p.y + 1.2).toFixed(2) + '" text-anchor="middle" font-size="3.2" font-weight="700" fill="#FAF6EC" font-family="Georgia, serif">' + p.label + '</text>' +
+      '</g>'
+    ).join('') +
+    '<text x="50" y="7" text-anchor="middle" font-size="3.4" font-weight="600" fill="#0E0E0F" font-family="Georgia, serif" letter-spacing="0.6">RUTA PICASSO</text>' +
+    '<text x="50" y="96" text-anchor="middle" font-size="2.6" fill="#8C8572" font-family="Georgia, serif">' + stops.length + ' paradas · centro histórico</text>' +
+    '</svg>';
+}
+
 function toggleParada(rutaId, paradaId) {
   const p = getProgreso();
   const key = `${rutaId}-${paradaId}`;
@@ -205,9 +291,9 @@ function render() {
   app.innerHTML = html;
   app.classList.add('page-enter');
 
-  // Init mapa 3D del hero cuando estamos en home
+  // Init mapa del hero cuando estamos en home (espera a que el contenedor tenga tamaño)
   if (hash === 'home') {
-    setTimeout(renderHeroMap, 100);
+    requestAnimationFrame(() => requestAnimationFrame(renderHeroMap));
   }
 
   // Active nav

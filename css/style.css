@@ -311,6 +311,8 @@ ul { list-style: none; }
   position: relative;
   aspect-ratio: 1 / 1;
   max-width: 560px;
+  min-height: 320px;
+  width: 100%;
   margin-left: auto;
   border-radius: var(--radius);
   overflow: hidden;
@@ -322,12 +324,29 @@ ul { list-style: none; }
   position: absolute;
   inset: 0;
   z-index: 1;
+  background: #E8DFC9;
 }
 .hero-map .leaflet-container {
   width: 100%;
   height: 100%;
   background: transparent;
   font-family: var(--font-body);
+}
+.hero-map-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.hero-map-fallback-text {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  color: var(--ink);
+  background: #E8DFC9;
 }
 .hero-map-overlay {
   position: absolute;

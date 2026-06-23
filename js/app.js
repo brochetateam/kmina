@@ -132,7 +132,7 @@ function renderHeroMap() {
         if (t > 0) {
           if (i < stops.length - 1) {
             const p1 = L.latLng(stops[i].lat, stops[i].lng);
-            const p2 = L.latLng(stops[i+1].lat, stops[i+1].lng);
+            const p2 = L.latLng(stops[i + 1].lat, stops[i + 1].lng);
             const interp = [p1.lat + (p2.lat - p1.lat) * t, p1.lng + (p2.lng - p1.lng) * t];
             drawn.push(interp);
           }
@@ -332,16 +332,18 @@ function renderHome() {
         </div>
         <div class="routes-grid">
           ${RUTAS.map((r, idx) => {
-            const prog = getProgresoRuta(r.id);
-            return `
+    const prog = getProgresoRuta(r.id);
+    return `
               <article class="route-card reveal" onclick="navigate('ruta/${r.id}')" style="transition-delay:${idx * 60}ms">
                 <div class="route-card-art">
-                  ${(() => { const _img = getRouteImage(r); return _img
-                    ? `<img src="${_img}" alt="${r.nombre}" loading="lazy" decoding="async" class="art-image">`
-                    : `<div class="art ${r.art}">${r.art === 'art-cubismo-rosa' ? '<span class="eye"></span>' : ''}${r.art === 'art-medieval' ? '<span class="tower"></span><span class="tower r"></span>' : ''}${r.art === 'art-historia' ? '<span class="arch"></span><span class="arch r"></span>' : ''}${r.art === 'art-gastro' ? '<span class="leaf"></span>' : ''}${r.art === 'art-abstract-1' ? '<span class="line"></span>' : ''}</div>`; })()}
+                  ${(() => {
+        const _img = getRouteImage(r); return _img
+          ? `<img src="${_img}" alt="${r.nombre}" loading="lazy" decoding="async" class="art-image">`
+          : `<div class="art ${r.art}">${r.art === 'art-cubismo-rosa' ? '<span class="eye"></span>' : ''}${r.art === 'art-medieval' ? '<span class="tower"></span><span class="tower r"></span>' : ''}${r.art === 'art-historia' ? '<span class="arch"></span><span class="arch r"></span>' : ''}${r.art === 'art-gastro' ? '<span class="leaf"></span>' : ''}${r.art === 'art-abstract-1' ? '<span class="line"></span>' : ''}</div>`;
+      })()}
                 </div>
                 ${prog.completo ? '<div class="route-card-progress done">✓ Completada</div>' :
-                  prog.completadas > 0 ? `<div class="route-card-progress">${prog.completadas}/${prog.total}</div>` : ''}
+        prog.completadas > 0 ? `<div class="route-card-progress">${prog.completadas}/${prog.total}</div>` : ''}
                 <div class="route-card-body">
                   <div class="route-card-num">
                     <span>0${idx + 1} · ${r.distancia}</span>
@@ -355,7 +357,7 @@ function renderHome() {
                   </div>
                 </div>
               </article>`;
-          }).join('')}
+  }).join('')}
         </div>
       </div>
     </section>
@@ -365,7 +367,7 @@ function renderHome() {
         <div class="section-header reveal" style="color:var(--paper);">
           <div>
             <span class="section-eyebrow" style="color:var(--ochre);">El modelo</span>
-            <h2 class="section-title" style="color:var(--paper);">Crowdfunding cultural<br><em style="color:var(--ochre);">que interconecta</em>.</h2>
+            <h2 class="section-title" style="color:var(--paper);">Plataforma cultural<br><em style="color:var(--ochre);">que interconecta</em>.</h2>
           </div>
           <p class="section-desc" style="color:rgba(242,235,220,0.7);">
             Empresas de diferentes sectores se unen bajo una temática común para crear
@@ -375,11 +377,11 @@ function renderHome() {
         </div>
         <div class="routes-grid reveal">
           ${[
-            { n: '01', t: 'Curación temática', d: 'Seleccionamos los lugares y experiencias que mejor cuentan la historia.' },
-            { n: '02', t: 'Rutas autogeneradas', d: 'Filtros por intereses, accesibilidad y tiempo disponible.' },
-            { n: '03', t: 'Logros & narrativa', d: 'Cada ruta completada revela un capítulo nuevo de la ciudad.' },
-            { n: '04', t: 'Partners integrados', d: 'Museos, bares, teatros y tiendas se conectan en una sola experiencia.' }
-          ].map(item => `
+      { n: '01', t: 'Curación temática', d: 'Seleccionamos los lugares y experiencias que mejor cuentan la historia.' },
+      { n: '02', t: 'Rutas autogeneradas', d: 'Filtros por intereses, accesibilidad y tiempo disponible.' },
+      { n: '03', t: 'Logros & narrativa', d: 'Cada ruta completada revela un capítulo nuevo de la ciudad.' },
+      { n: '04', t: 'Partners integrados', d: 'Museos, bares, teatros y tiendas se conectan en una sola experiencia.' }
+    ].map(item => `
             <div style="border:1px solid rgba(242,235,220,0.15); border-radius: var(--radius); padding: 32px; background: rgba(242,235,220,0.03);">
               <div style="font-family:var(--font-display); color:var(--ochre); font-size: 1.4rem; margin-bottom: 12px;">${item.n}</div>
               <h3 style="font-family:var(--font-display); font-weight: 500; font-size: 1.3rem; margin-bottom: 8px; color:var(--paper);">${item.t}</h3>
@@ -408,16 +410,18 @@ function renderRutas() {
         </div>
         <div class="routes-grid">
           ${RUTAS.map((r, idx) => {
-            const prog = getProgresoRuta(r.id);
-            return `
+    const prog = getProgresoRuta(r.id);
+    return `
               <article class="route-card reveal" onclick="navigate('ruta/${r.id}')" style="transition-delay:${idx * 60}ms">
                 <div class="route-card-art">
-                  ${(() => { const _img = getRouteImage(r); return _img
-                    ? `<img src="${_img}" alt="${r.nombre}" loading="lazy" decoding="async" class="art-image">`
-                    : `<div class="art ${r.art}">${r.art === 'art-cubismo-rosa' ? '<span class="eye"></span>' : ''}${r.art === 'art-medieval' ? '<span class="tower"></span><span class="tower r"></span>' : ''}${r.art === 'art-historia' ? '<span class="arch"></span><span class="arch r"></span>' : ''}${r.art === 'art-gastro' ? '<span class="leaf"></span>' : ''}${r.art === 'art-abstract-1' ? '<span class="line"></span>' : ''}</div>`; })()}
+                  ${(() => {
+        const _img = getRouteImage(r); return _img
+          ? `<img src="${_img}" alt="${r.nombre}" loading="lazy" decoding="async" class="art-image">`
+          : `<div class="art ${r.art}">${r.art === 'art-cubismo-rosa' ? '<span class="eye"></span>' : ''}${r.art === 'art-medieval' ? '<span class="tower"></span><span class="tower r"></span>' : ''}${r.art === 'art-historia' ? '<span class="arch"></span><span class="arch r"></span>' : ''}${r.art === 'art-gastro' ? '<span class="leaf"></span>' : ''}${r.art === 'art-abstract-1' ? '<span class="line"></span>' : ''}</div>`;
+      })()}
                 </div>
                 ${prog.completo ? '<div class="route-card-progress done">✓ Completada</div>' :
-                  prog.completadas > 0 ? `<div class="route-card-progress">${prog.completadas}/${prog.total}</div>` : ''}
+        prog.completadas > 0 ? `<div class="route-card-progress">${prog.completadas}/${prog.total}</div>` : ''}
                 <div class="route-card-body">
                   <div class="route-card-num">
                     <span>0${idx + 1} · ${r.distancia}</span>
@@ -431,7 +435,7 @@ function renderRutas() {
                   </div>
                 </div>
               </article>`;
-          }).join('')}
+  }).join('')}
         </div>
       </div>
     </section>
@@ -479,15 +483,15 @@ function renderRutaDetail(id) {
 
         <div class="stops-list">
           ${ruta.paradas.map((par, i) => {
-            const checked = !!p.paradas[`${id}-${par.id}`];
-            return `
+    const checked = !!p.paradas[`${id}-${par.id}`];
+    return `
               <div class="stop-card reveal ${checked ? 'completed' : ''}" style="transition-delay:${i * 50}ms">
                 <div class="stop-number">Parada ${i + 1}</div>
                 <div class="stop-art">
                   ${par.img
-                    ? `<img src="${par.img}" alt="${par.nombre}" loading="lazy" decoding="async" class="art-image art-sm">`
-                    : `<div class="art ${par.art} art-sm">${par.art === 'art-cubismo-rosa' ? '<span class="eye"></span>' : ''}${par.art === 'art-medieval' ? '<span class="tower"></span><span class="tower r"></span>' : ''}${par.art === 'art-historia' ? '<span class="arch"></span><span class="arch r"></span>' : ''}${par.art === 'art-gastro' ? '<span class="leaf"></span>' : ''}${par.art === 'art-abstract-1' ? '<span class="line"></span>' : ''}</div>`
-                  }
+        ? `<img src="${par.img}" alt="${par.nombre}" loading="lazy" decoding="async" class="art-image art-sm">`
+        : `<div class="art ${par.art} art-sm">${par.art === 'art-cubismo-rosa' ? '<span class="eye"></span>' : ''}${par.art === 'art-medieval' ? '<span class="tower"></span><span class="tower r"></span>' : ''}${par.art === 'art-historia' ? '<span class="arch"></span><span class="arch r"></span>' : ''}${par.art === 'art-gastro' ? '<span class="leaf"></span>' : ''}${par.art === 'art-abstract-1' ? '<span class="line"></span>' : ''}</div>`
+      }
                 </div>
                 <div class="stop-info">
                   <span class="type">${par.tipo}</span>
@@ -505,7 +509,7 @@ function renderRutaDetail(id) {
                   ${checked ? '✓' : '○'}
                 </div>
               </div>`;
-          }).join('')}
+  }).join('')}
         </div>
 
         <div style="text-align:center; margin-top: 60px;" class="reveal">
@@ -637,9 +641,9 @@ function aplicarFiltros() {
         <div class="custom-result-card" onclick="navigate('ruta/${r.rutaId}')" style="animation: pageIn 0.5s var(--ease) ${i * 30}ms both;">
           <div class="stop-art">
             ${r.img
-              ? `<img src="${r.img}" alt="${r.nombre}" loading="lazy" decoding="async" class="art-image art-sm">`
-              : `<div class="art ${r.art} art-sm">${r.art === 'art-cubismo-rosa' ? '<span class="eye"></span>' : ''}${r.art === 'art-medieval' ? '<span class="tower"></span><span class="tower r"></span>' : ''}${r.art === 'art-historia' ? '<span class="arch"></span><span class="arch r"></span>' : ''}${r.art === 'art-gastro' ? '<span class="leaf"></span>' : ''}${r.art === 'art-abstract-1' ? '<span class="line"></span>' : ''}</div>`
-            }
+      ? `<img src="${r.img}" alt="${r.nombre}" loading="lazy" decoding="async" class="art-image art-sm">`
+      : `<div class="art ${r.art} art-sm">${r.art === 'art-cubismo-rosa' ? '<span class="eye"></span>' : ''}${r.art === 'art-medieval' ? '<span class="tower"></span><span class="tower r"></span>' : ''}${r.art === 'art-historia' ? '<span class="arch"></span><span class="arch r"></span>' : ''}${r.art === 'art-gastro' ? '<span class="leaf"></span>' : ''}${r.art === 'art-abstract-1' ? '<span class="line"></span>' : ''}</div>`
+    }
           </div>
           <div>
             <h4>${r.nombre}</h4>
@@ -694,9 +698,9 @@ function renderLogros() {
         <h3 class="section-title reveal" style="font-size:1.8rem; margin-bottom:24px;">Insignias</h3>
         <div class="achievement-grid">
           ${LOGROS.map((l, i) => {
-            const unlocked = desbloqueados.find(d => d.id === l.id);
-            const progRuta = l.ruta ? getProgresoRuta(l.ruta) : null;
-            return `
+    const unlocked = desbloqueados.find(d => d.id === l.id);
+    const progRuta = l.ruta ? getProgresoRuta(l.ruta) : null;
+    return `
               <div class="achievement-card reveal ${unlocked ? 'unlocked' : 'locked'}" style="transition-delay:${i * 40}ms">
                 <span class="achievement-icon">${l.icono}</span>
                 <h4>${l.nombre}</h4>
@@ -704,7 +708,7 @@ function renderLogros() {
                 ${progRuta ? `<div class="meta">${progRuta.completadas}/${progRuta.total} paradas</div>` : ''}
                 ${!unlocked && !l.ruta ? `<div class="meta">${l.umbral} rutas requeridas</div>` : ''}
               </div>`;
-          }).join('')}
+  }).join('')}
         </div>
 
         <div class="simulator reveal">

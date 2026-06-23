@@ -76,16 +76,7 @@ ul { list-style: none; }
   position: relative;
 }
 
-/* ============ BACKGROUND 3D CANVAS ============ */
-#bg-canvas {
-  position: fixed;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  z-index: -1;
-  pointer-events: none;
-  opacity: 0.85;
-}
+/* ============ (3D ambient canvas disabled) ============ */
 
 /* ============ HEADER ============ */
 .header {
@@ -327,13 +318,16 @@ ul { list-style: none; }
   border: 1px solid var(--border);
   box-shadow: var(--shadow-2);
 }
-.hero-canvas-wrap canvas {
+.hero-map {
   position: absolute;
   inset: 0;
-  width: 100% !important;
-  height: 100% !important;
-  display: block;
   z-index: 1;
+}
+.hero-map .leaflet-container {
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  font-family: var(--font-body);
 }
 .hero-map-overlay {
   position: absolute;
@@ -365,6 +359,45 @@ ul { list-style: none; }
   color: var(--paper);
   border-color: var(--ink);
   transform: rotate(6deg);
+}
+.hero-map-legend {
+  position: absolute;
+  bottom: 14px;
+  left: 14px;
+  background: rgba(250, 246, 236, 0.92);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--ink);
+  border-radius: 12px;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.78rem;
+  z-index: 1000;
+  pointer-events: auto;
+  font-family: var(--font-body);
+  font-weight: 500;
+  box-shadow: var(--shadow-1);
+}
+.hero-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+}
+.hero-legend-item .dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--c, var(--ink));
+  border: 2px solid var(--paper);
+  box-shadow: 0 0 0 1px var(--ink);
+}
+.hero-legend-item .line {
+  width: 18px;
+  height: 2px;
+  background: var(--c, var(--ink));
+  border-radius: 1px;
 }
 
 /* ============ MARQUEE ============ */
@@ -1372,6 +1405,22 @@ ul { list-style: none; }
   100% { transform: scale(2); opacity: 0; }
 }
 .kmina-marker-inner:hover { transform: scale(1.15); }
+
+/* Hero map · más compactos y sin pulso */
+.kmina-marker-hero .kmina-marker-inner {
+  width: 28px; height: 28px;
+  font-size: 0.78rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+}
+.kmina-marker-hero .kmina-marker-inner::after {
+  display: none;
+}
+
+/* Atribución Leaflet más discreta en el hero */
+.hero-map .leaflet-control-attribution {
+  font-size: 0.62rem !important;
+  background: rgba(250,246,236,0.7) !important;
+}
 
 .kmina-popup .leaflet-popup-content-wrapper {
   background: var(--paper);

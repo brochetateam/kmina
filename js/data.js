@@ -12,27 +12,9 @@ const RUTAS = [
     art: 'art-medieval',
     color: '#8B6F47',
     accent: '#D4A843',
-    duracion: '4 horas',
-    distancia: '3.5 km',
+    duracion: '3 horas',
+    distancia: '1.8 km',
     paradas: [
-      {
-        id: 1, nombre: 'Alcazaba de Málaga', tipo: 'monumento',
-        art: 'art-medieval',
-        img: 'img/alcazaba.jpg',
-        tags: ['medieval', 'histórico', 'arquitectura'],
-        lat: 36.7210, lng: -4.4166,
-        descripcion: 'Fortaleza palaciega del siglo XI, una de las más importantes de la época musulmana en Andalucía. Sus murallas y jardines cuentan la historia del poder islámico en la ciudad.',
-        horario: '09:00 - 20:00', precio: '3,50 €'
-      },
-      {
-        id: 2, nombre: 'Castillo de Gibralfaro', tipo: 'monumento',
-        art: 'art-medieval',
-        img: 'img/gibralfaro.jpg',
-        tags: ['medieval', 'histórico', 'mirador'],
-        lat: 36.7228, lng: -4.4113,
-        descripcion: 'Fortificación del siglo XIV que corona el monte Gibralfaro. Ofrece las mejores vistas panorámicas de Málaga y fue clave en la defensa de la ciudad durante la Reconquista.',
-        horario: '09:00 - 20:00', precio: '3,50 €'
-      },
       {
         id: 3, nombre: 'Teatro Romano', tipo: 'cultural',
         art: 'art-historia',
@@ -41,6 +23,24 @@ const RUTAS = [
         lat: 36.7201, lng: -4.4183,
         descripcion: 'Construido en el siglo I a.C., este teatro fue utilizado hasta el siglo III y redescubierto en 1951. Su reutilización de materiales en la época medieval lo conecta directamente con nuestra ruta.',
         horario: '10:00 - 18:00', precio: 'Gratuito'
+      },
+      {
+        id: 5, nombre: 'Muralla Nazarí', tipo: 'monumento',
+        art: 'art-abstract-1',
+        img: 'img/muralla-nazari.jpg',
+        tags: ['medieval', 'histórico'],
+        lat: 36.7210, lng: -4.4175,
+        descripcion: 'Restos de la muralla que rodeaba la medina de Málaga. Un paseo por sus alrededores permite entender la estructura defensiva de la ciudad medieval.',
+        horario: '24h', precio: 'Gratuito'
+      },
+      {
+        id: 1, nombre: 'Alcazaba de Málaga', tipo: 'monumento',
+        art: 'art-medieval',
+        img: 'img/alcazaba.jpg',
+        tags: ['medieval', 'histórico', 'arquitectura'],
+        lat: 36.7210, lng: -4.4166,
+        descripcion: 'Fortaleza palaciega del siglo XI, una de las más importantes de la época musulmana en Andalucía. Sus murallas y jardines cuentan la historia del poder islámico en la ciudad.',
+        horario: '09:00 - 20:00', precio: '3,50 €'
       },
       {
         id: 4, nombre: 'Taberna del Pasaje', tipo: 'restaurante',
@@ -52,13 +52,13 @@ const RUTAS = [
         horario: '12:00 - 00:00', precio: '15-25 €'
       },
       {
-        id: 5, nombre: 'Muralla Nazarí', tipo: 'monumento',
-        art: 'art-abstract-1',
-        img: 'img/muralla-nazari.jpg',
-        tags: ['medieval', 'histórico'],
-        lat: 36.7210, lng: -4.4175,
-        descripcion: 'Restos de la muralla que rodeaba la medina de Málaga. Un paseo por sus alrededores permite entender la estructura defensiva de la ciudad medieval.',
-        horario: '24h', precio: 'Gratuito'
+        id: 2, nombre: 'Castillo de Gibralfaro', tipo: 'monumento',
+        art: 'art-medieval',
+        img: 'img/gibralfaro.jpg',
+        tags: ['medieval', 'histórico', 'mirador'],
+        lat: 36.7228, lng: -4.4113,
+        descripcion: 'Fortificación del siglo XIV que corona el monte Gibralfaro. Ofrece las mejores vistas panorámicas de Málaga y fue clave en la defensa de la ciudad durante la Reconquista.',
+        horario: '09:00 - 20:00', precio: '3,50 €'
       }
     ]
   },
@@ -70,8 +70,8 @@ const RUTAS = [
     art: 'art-cubismo-azul',
     color: '#2C6E8A',
     accent: '#D4A843',
-    duracion: '3 horas',
-    distancia: '2 km',
+    duracion: '2.5 horas',
+    distancia: '1.0 km',
     paradas: [
       {
         id: 6, nombre: 'Museo Picasso Málaga', tipo: 'museo',
@@ -81,6 +81,15 @@ const RUTAS = [
         lat: 36.7217363, lng: -4.4184291,
         descripcion: 'Más de 200 obras donadas por la familia del artista. Un recorrido por la evolución creativa de Picasso desde sus inicios hasta sus últimas obras. Ubicado en el Palacio de Buenavista, Calle San Agustín 8.',
         horario: '10:00 - 19:00', precio: '10 €'
+      },
+      {
+        id: 10, nombre: 'Casa Natal de Picasso', tipo: 'museo',
+        art: 'art-cubismo-azul',
+        img: 'img/casa-natal-picasso.jpg',
+        tags: ['artístico', 'cultural', 'picasso'],
+        lat: 36.7220, lng: -4.4180,
+        descripcion: 'Edificio del siglo XIX donde nació Pablo Ruiz Picasso en 1881. Hoy es un museo que alberga objetos personales y obras tempranas del artista.',
+        horario: '09:30 - 20:00', precio: '3 €'
       },
       {
         id: 7, nombre: 'Iglesia de Santiago', tipo: 'monumento',
@@ -108,15 +117,6 @@ const RUTAS = [
         lat: 36.7208742, lng: -4.4212455,
         descripcion: 'Pasaje de Chinitas, 6. Taberna histórica frecuentada por Picasso y escenario de sus pasiones andaluzas. Flamenco en vivo, vermut y la Málaga más auténtica.',
         horario: '12:00 - 02:00', precio: '15-30 €'
-      },
-      {
-        id: 10, nombre: 'Casa Natal de Picasso', tipo: 'museo',
-        art: 'art-cubismo-azul',
-        img: 'img/casa-natal-picasso.jpg',
-        tags: ['artístico', 'cultural', 'picasso'],
-        lat: 36.7220, lng: -4.4180,
-        descripcion: 'Edificio del siglo XIX donde nació Pablo Ruiz Picasso en 1881. Hoy es un museo que alberga objetos personales y obras tempranas del artista.',
-        horario: '09:30 - 20:00', precio: '3 €'
       }
     ]
   },
@@ -128,17 +128,17 @@ const RUTAS = [
     art: 'art-gastro',
     color: '#D4A843',
     accent: '#C84B31',
-    duracion: '5 horas',
-    distancia: '2.5 km',
+    duracion: '4 horas',
+    distancia: '1.5 km',
     paradas: [
       {
-        id: 11, nombre: 'Mercado de Atarazanas', tipo: 'mercado',
-        art: 'art-gastro',
-        img: 'img/mercado-atarazanas.jpg',
-        tags: ['gastronómico', 'tradicional', 'cultural'],
-        lat: 36.7184, lng: -4.4206,
-        descripcion: 'Construido en el siglo XIV como astillero nazarí, hoy es el mercado central de Málaga. Sus productos frescos reflejan la riqueza gastronómica de la provincia.',
-        horario: '08:00 - 15:00', precio: 'Variable'
+        id: 13, nombre: 'Museo del Vino de Málaga', tipo: 'museo',
+        art: 'art-abstract-1',
+        img: 'img/museo-vino.jpg',
+        tags: ['gastronómico', 'cultural', 'vino'],
+        lat: 36.7205, lng: -4.4190,
+        descripcion: 'Historia de la tradición vinícola malagueña desde la época fenicia. Incluye cata de vinos dulces que hicieron famosa a Málaga en el mundo.',
+        horario: '10:00 - 18:00', precio: '6 €'
       },
       {
         id: 12, nombre: 'El Pimpi', tipo: 'restaurante',
@@ -150,15 +150,6 @@ const RUTAS = [
         horario: '10:00 - 01:00', precio: '15-30 €'
       },
       {
-        id: 13, nombre: 'Museo del Vino de Málaga', tipo: 'museo',
-        art: 'art-abstract-1',
-        img: 'img/museo-vino.jpg',
-        tags: ['gastronómico', 'cultural', 'vino'],
-        lat: 36.7205, lng: -4.4190,
-        descripcion: 'Historia de la tradición vinícola malagueña desde la época fenicia. Incluye cata de vinos dulces que hicieron famosa a Málaga en el mundo.',
-        horario: '10:00 - 18:00', precio: '6 €'
-      },
-      {
         id: 14, nombre: 'Casa de Guardia', tipo: 'bar',
         art: 'art-gastro',
         img: 'img/casa-guardia.jpg',
@@ -166,6 +157,15 @@ const RUTAS = [
         lat: 36.7197, lng: -4.4208,
         descripcion: 'La bodega más antigua de Málaga (1840). Sus vinos dulces se sirven directamente de barriles centenarios. Una experiencia única en el mundo.',
         horario: '10:00 - 22:00', precio: '5-15 €'
+      },
+      {
+        id: 11, nombre: 'Mercado de Atarazanas', tipo: 'mercado',
+        art: 'art-gastro',
+        img: 'img/mercado-atarazanas.jpg',
+        tags: ['gastronómico', 'tradicional', 'cultural'],
+        lat: 36.7184, lng: -4.4206,
+        descripcion: 'Construido en el siglo XIV como astillero nazarí, hoy es el mercado central de Málaga. Sus productos frescos reflejan la riqueza gastronómica de la provincia.',
+        horario: '08:00 - 15:00', precio: 'Variable'
       },
       {
         id: 15, nombre: 'Restaurante José Carlos García', tipo: 'restaurante',
@@ -186,18 +186,9 @@ const RUTAS = [
     art: 'art-historia',
     color: '#2D6A4F',
     accent: '#8B6F47',
-    duracion: '4 horas',
-    distancia: '4 km',
+    duracion: '3.5 horas',
+    distancia: '1.5 km',
     paradas: [
-      {
-        id: 16, nombre: 'Catedral de Málaga', tipo: 'monumento',
-        art: 'art-historia',
-        img: 'img/catedral-malaga.jpg',
-        tags: ['histórico', 'arquitectura', 'religioso'],
-        lat: 36.7200, lng: -4.4200,
-        descripcion: 'Conocida como "La Manquita" por su torre inacabada. Construida entre los siglos XVI y XVIII sobre una mezquita, mezcla estilos renacentista, barroco y neoclásico.',
-        horario: '10:00 - 18:00', precio: '8 €'
-      },
       {
         id: 17, nombre: 'Plaza de la Constitución', tipo: 'plaza',
         art: 'art-abstract-1',
@@ -217,13 +208,13 @@ const RUTAS = [
         horario: '24h', precio: 'Gratuito'
       },
       {
-        id: 19, nombre: 'Museo de Málaga', tipo: 'museo',
-        art: 'art-medieval',
-        img: 'img/museo-malaga.jpg',
-        tags: ['histórico', 'cultural', 'arqueología'],
-        lat: 36.7189, lng: -4.4140,
-        descripcion: 'Ubicado en el Palacio de la Aduana, alberga colecciones de arqueología y bellas artes que cuentan la historia completa de la provincia.',
-        horario: '09:00 - 21:00', precio: '1,50 €'
+        id: 16, nombre: 'Catedral de Málaga', tipo: 'monumento',
+        art: 'art-historia',
+        img: 'img/catedral-malaga.jpg',
+        tags: ['histórico', 'arquitectura', 'religioso'],
+        lat: 36.7200, lng: -4.4200,
+        descripcion: 'Conocida como "La Manquita" por su torre inacabada. Construida entre los siglos XVI y XVIII sobre una mezquita, mezcla estilos renacentista, barroco y neoclásico.',
+        horario: '10:00 - 18:00', precio: '8 €'
       },
       {
         id: 20, nombre: 'Santuario de la Victoria', tipo: 'monumento',
@@ -233,6 +224,15 @@ const RUTAS = [
         lat: 36.7160, lng: -4.4170,
         descripcion: 'Basílica donde Fernando el Católico recibió las llaves de la ciudad en 1487. Marca el inicio de la Málaga cristiana y custodia los Reyes Santos.',
         horario: '09:00 - 13:00 / 17:00 - 20:00', precio: 'Gratuito'
+      },
+      {
+        id: 19, nombre: 'Museo de Málaga', tipo: 'museo',
+        art: 'art-medieval',
+        img: 'img/museo-malaga.jpg',
+        tags: ['histórico', 'cultural', 'arqueología'],
+        lat: 36.7189, lng: -4.4140,
+        descripcion: 'Ubicado en el Palacio de la Aduana, alberga colecciones de arqueología y bellas artes que cuentan la historia completa de la provincia.',
+        horario: '09:00 - 21:00', precio: '1,50 €'
       }
     ]
   },
@@ -244,8 +244,8 @@ const RUTAS = [
     art: 'art-flamenco',
     color: '#C84B31',
     accent: '#D4A843',
-    duracion: '3 horas',
-    distancia: '2 km',
+    duracion: '2.5 horas',
+    distancia: '0.9 km',
     paradas: [
       {
         id: 21, nombre: 'Tablao Flamenco Los Amayas', tipo: 'espectáculo',
@@ -257,22 +257,13 @@ const RUTAS = [
         horario: '20:00 - 00:00', precio: '25 €'
       },
       {
-        id: 22, nombre: 'Peña Flamenca Juan Breva', tipo: 'cultural',
+        id: 25, nombre: 'Centro Cultural Flamenco \'La Malagueta\'', tipo: 'cultural',
         art: 'art-flamenco',
-        img: 'img/pena-juan-breva.jpg',
+        img: 'img/centro-andaluz-letras.jpg',
         tags: ['flamenco', 'cultural', 'tradicional'],
-        lat: 36.7209, lng: -4.4212,
-        descripcion: 'Peña flamenca fundada en 1958. Dedicada a preservar y difundir el flamenco malagueño. Sesiones de cante por bulerías y soleás.',
-        horario: '20:00 - 23:00', precio: '10 €'
-      },
-      {
-        id: 23, nombre: 'Teatro Cervantes', tipo: 'teatro',
-        art: 'art-historia',
-        img: 'img/teatro-cervantes.jpg',
-        tags: ['flamenco', 'artístico', 'cultural', 'teatro'],
-        lat: 36.7200, lng: -4.4170,
-        descripcion: 'Teatro histórico del siglo XIX que acoge los mejores espectáculos flamencos y de artes escénicas. Su arquitectura neoclásica es impresionante.',
-        horario: 'Variable', precio: 'Variable'
+        lat: 36.7212, lng: -4.4185,
+        descripcion: 'Espacio dedicado a la difusión del flamenco malagueño. Talleres, exposiciones y recitales para comprender la profundidad del arte jondo.',
+        horario: '10:00 - 22:00', precio: 'Variable'
       },
       {
         id: 24, nombre: 'Bodega El Pimpi (Sala Flamenca)', tipo: 'restaurante',
@@ -284,13 +275,22 @@ const RUTAS = [
         horario: '12:00 - 02:00', precio: '15-25 €'
       },
       {
-        id: 25, nombre: 'Centro Cultural Flamenco \'La Malagueta\'', tipo: 'cultural',
+        id: 23, nombre: 'Teatro Cervantes', tipo: 'teatro',
+        art: 'art-historia',
+        img: 'img/teatro-cervantes.jpg',
+        tags: ['flamenco', 'artístico', 'cultural', 'teatro'],
+        lat: 36.7200, lng: -4.4170,
+        descripcion: 'Teatro histórico del siglo XIX que acoge los mejores espectáculos flamencos y de artes escénicas. Su arquitectura neoclásica es impresionante.',
+        horario: 'Variable', precio: 'Variable'
+      },
+      {
+        id: 22, nombre: 'Peña Flamenca Juan Breva', tipo: 'cultural',
         art: 'art-flamenco',
-        img: 'img/centro-andaluz-letras.jpg',
+        img: 'img/pena-juan-breva.jpg',
         tags: ['flamenco', 'cultural', 'tradicional'],
-        lat: 36.7212, lng: -4.4185,
-        descripcion: 'Espacio dedicado a la difusión del flamenco malagueño. Talleres, exposiciones y recitales para comprender la profundidad del arte jondo.',
-        horario: '10:00 - 22:00', precio: 'Variable'
+        lat: 36.7209, lng: -4.4212,
+        descripcion: 'Peña flamenca fundada en 1958. Dedicada a preservar y difundir el flamenco malagueño. Sesiones de cante por bulerías y soleás.',
+        horario: '20:00 - 23:00', precio: '10 €'
       }
     ]
   }

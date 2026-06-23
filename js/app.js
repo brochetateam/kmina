@@ -62,11 +62,108 @@ function renderArt(item, extraClass = '') {
 }
 
 // =========================================================
-// Three.js bridge
+// Hero map · preview de la ruta Picasso
 // =========================================================
-function initHero3D() {
-  if (window.KMINA_THREE && window.KMINA_THREE.initHeroMap) {
-    window.KMINA_THREE.initHeroMap(RUTAS);
+let _heroLeafletMap = null;
+
+function renderHeroMap() {
+  if (!window.L) return; // Leaflet no cargó
+  const el = document.getElementById('heroMap');
+  if (!el) return;
+
+  // Limpia si ya había un mapa (re-render del home)
+  if (_heroLeafletMap) {
+    _heroLeafletMap.remove();
+    _heroLeafletMap = null;
+  }
+
+  const picasso = RUTAS.find(r => r.id === 'picasso');
+  if (!picasso) return;
+
+  const stops = picasso.paradas.filter(s => s.lat != null && s.lng != null);
+  if (stops.length === 0) return;
+
+  const map = L.map(el, {
+    zoomControl: false,
+    scrollWheelZoom: false,
+    attributionControl: true,
+    dragging: false,
+    doubleClickZoom: false
+  });
+
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+    attribution: '© <a href="https://www.openstreetmap.org/copyright">OSM</a> · © <a href="https://carto.com/attributions">CARTO</a>',
+    subdomains: 'abcd',
+    maxZoom: 19
+  }).addTo(map);
+
+  const color = picasso.color || '#2C6E8A';
+  const latlngs = stops.map(s => [s.lat, s.lng]);
+
+  // Polyline con efecto de "dibujo"
+  const polyline = L.polyline(latlngs, {
+    color, weight: 4, opacity: 0.85,
+    dashArray: '1, 12', lineCap: 'round'
+  }).addTo(map);
+
+  // Marcadores
+  stops.forEach((s, i) => {
+    const icon = L.divIcon({
+      className: 'kmina-marker kmina-marker-hero',
+      html: `<div class="kmina-marker-inner" style="--c:${color}"><span>${i + 1}</span></div>`,
+      iconSize: [32, 32],
+      iconAnchor: [16, 16]
+    });
+    L.marker([s.lat, s.lng], { icon, title: s.nombre }).addTo(map);
+  });
+
+  // Fit bounds con padding
+  const bounds = L.latLngBounds(latlngs);
+  map.fitBounds(bounds, { padding: [60, 60] });
+
+  // Animación: dibuja la polyline progresivamente
+  let progress = 0;
+  const animate = () => {
+    progress = Math.min(1, progress + 0.02);
+    if (progress < 1) {
+      const drawn = [];
+      for (let i = 0; i <= stops.length - 1; i++) {
+        const t = Math.min(1, Math.max(0, progress * (stops.length - 1) - i));
+        if (t > 0) {
+          if (i < stops.length - 1) {
+            const p1 = L.latLng(stops[i].lat, stops[i].lng);
+            const p2 = L.latLng(stops[i+1].lat, stops[i+1].lng);
+            const interp = [p1.lat + (p2.lat - p1.lat) * t, p1.lng + (p2.lng - p1.lng) * t];
+            drawn.push(interp);
+          }
+        }
+      }
+      if (drawn.length > 1) polyline.setLatLngs(drawn);
+      else if (drawn.length === 1) polyline.setLatLngs([drawn[0], drawn[0]]);
+      requestAnimationFrame(animate);
+    } else {
+      polyline.setLatLngs(latlngs);
+      // Re-dibujar con lineCap bonito
+      setTimeout(() => {
+        polyline.setStyle({ dashArray: null, opacity: 0.9 });
+      }, 50);
+    }
+  };
+  setTimeout(animate, 400);
+
+  el._leafletMap = map;
+  _heroLeafletMap = map;
+
+  // Invalidate size cuando cambia el viewport
+  if (!window._heroMapResizeBound) {
+    window._heroMapResizeBound = true;
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        if (_heroLeafletMap) _heroLeafletMap.invalidateSize();
+      }, 200);
+    });
   }
 }
 
@@ -110,7 +207,7 @@ function render() {
 
   // Init mapa 3D del hero cuando estamos en home
   if (hash === 'home') {
-    setTimeout(initHero3D, 50);
+    setTimeout(renderHeroMap, 100);
   }
 
   // Active nav
@@ -198,10 +295,14 @@ function renderHome() {
             </div>
           </div>
           <div class="hero-canvas-wrap" id="heroCanvasWrap">
-            <canvas id="hero-canvas"></canvas>
+            <div class="hero-map" id="heroMap"></div>
             <div class="hero-map-overlay">
               <span class="hero-canvas-tag">made with ❤ in Málaga</span>
-              <span class="hero-canvas-tag b">5 rutas · 25 paradas</span>
+              <span class="hero-canvas-tag b">Ruta Picasso · 5 paradas</span>
+            </div>
+            <div class="hero-map-legend">
+              <div class="hero-legend-item"><span class="dot" style="--c:#2C6E8A"></span> Paradas</div>
+              <div class="hero-legend-item"><span class="line" style="--c:#2C6E8A"></span> Recorrido</div>
             </div>
           </div>
         </div>
